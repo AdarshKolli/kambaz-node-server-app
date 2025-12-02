@@ -1,39 +1,37 @@
+import model from "./model.js";
+
 export default function EnrollmentsDao(db) {
-  function enrollUserInCourse(userId, courseId) {
-    const { enrollments } = db;
-    const enrollment = {
-      _id: new Date().getTime().toString(),
+  const findCoursesForUser = async (userId) => {
+    const enrollments = await model.find({ user: userId }).populate("course");
+    return enrollments.map((enrollment) => enrollment.course);
+  };
+
+  const findUsersForCourse = async (courseId) => {
+    const enrollments = await model.find({ course: courseId }).populate("user");
+    return enrollments.map((enrollment) => enrollment.user);
+  };
+
+  const enrollUserInCourse = (userId, courseId) => {
+    return model.create({
       user: userId,
       course: courseId,
-    };
-    db.enrollments = [...db.enrollments, enrollment];
-    return enrollment;
-  }
+      _id: `${userId}-${courseId}`,
+    });
+  };
 
-  function unenrollUserFromCourse(userId, courseId) {
-    const { enrollments } = db;
-    db.enrollments = enrollments.filter(
-      (enrollment) => !(enrollment.user === userId && enrollment.course === courseId)
-    );
-  }
+  const unenrollUserFromCourse = (user, course) => {
+    return model.deleteOne({ user, course });
+  };
 
-  function findEnrollmentsForUser(userId) {
-    const { enrollments } = db;
-    return enrollments.filter((enrollment) => enrollment.user === userId);
-  }
-
-  function findUsersForCourse(courseId) {
-    const { enrollments, users } = db;
-    const enrolledUserIds = enrollments
-      .filter((enrollment) => enrollment.course === courseId)
-      .map((enrollment) => enrollment.user);
-    return users.filter((user) => enrolledUserIds.includes(user._id));
-  }
+  const unenrollAllUsersFromCourse = (courseId) => {
+    return model.deleteMany({ course: courseId });
+  };
 
   return {
+    findCoursesForUser,
+    findUsersForCourse,
     enrollUserInCourse,
     unenrollUserFromCourse,
-    findEnrollmentsForUser,
-    findUsersForCourse,
+    unenrollAllUsersFromCourse,
   };
 }
